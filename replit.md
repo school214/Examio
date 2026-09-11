@@ -1,6 +1,6 @@
-# [Project name]
+# Examio
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Examio is a Swedish Årskurs 8 practice-exam platform that helps students rehearse exams and understand what to improve.
 
 ## Run & Operate
 
@@ -22,23 +22,35 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/examio` — React/Vite student and admin web app.
+- `artifacts/api-server` — Express API for exams, attempts, results, and admin summaries.
+- `lib/api-spec/openapi.yaml` — source of truth for API contracts.
+- `lib/db/src/schema/examio.ts` — Drizzle schema for Examio tables.
+- `artifacts/api-server/src/lib/seed.ts` — idempotent development seed for Religion and History exams.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Student-facing exam payloads never include answer keys; grading happens in the API on submission.
+- Exam content is data-driven so additional subjects and exams can be added without changing the student dashboard.
+- The first release uses deterministic server-side practice feedback so existing exams remain usable even before AI services are configured.
+- The frontend consumes generated hooks from the OpenAPI contract rather than hand-written API types.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Swedish homepage and student dashboard.
+- Seeded Religionskunskap and Historia Årskurs 8 practice exams.
+- Mixed question types, attempt autosave, question navigation, marking, submission, and practice result feedback.
+- Result history, learning profile, and a starting admin exam-management surface.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+All user-facing student content should remain Swedish and should distinguish Examio practice assessments from official school grades.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- After changing `lib/api-spec/openapi.yaml`, run `pnpm --filter @workspace/api-spec run codegen`.
+- Restart the managed API and web workflows after backend or frontend changes.
+- Admin authentication, Gemini generation, and image generation still need their production integration pass.
 
 ## Pointers
 

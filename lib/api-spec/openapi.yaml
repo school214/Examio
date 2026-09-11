@@ -10,6 +10,14 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: exams
+    description: Student exam discovery and detail
+  - name: attempts
+    description: Student exam attempts and submissions
+  - name: results
+    description: Student results and learning profile
+  - name: admin
+    description: Admin overview and exam management
 paths:
   /healthz:
     get:
@@ -24,7 +32,207 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /exams:
+    get:
+      operationId: listExams
+      tags: [exams]
+      summary: List published practice exams
+      responses:
+        "200":
+          description: Published exams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExamSummary"
+  /exams/{examId}:
+    get:
+      operationId: getExam
+      tags: [exams]
+      summary: Get an exam and its student-safe questions
+      parameters:
+        - $ref: "#/components/parameters/ExamId"
+      responses:
+        "200":
+          description: Exam detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExamDetail"
+        "404":
+          description: Exam not found
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [exams]
+      summary: Get the student dashboard
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /attempts:
+    post:
+      operationId: startAttempt
+      tags: [attempts]
+      summary: Start or resume an exam attempt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttemptStartInput"
+      responses:
+        "201":
+          description: Started attempt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attempt"
+  /attempts/{attemptId}:
+    get:
+      operationId: getAttempt
+      tags: [attempts]
+      summary: Get a current attempt
+      parameters:
+        - $ref: "#/components/parameters/AttemptId"
+      responses:
+        "200":
+          description: Attempt detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attempt"
+    patch:
+      operationId: saveAttempt
+      tags: [attempts]
+      summary: Autosave an answer in an attempt
+      parameters:
+        - $ref: "#/components/parameters/AttemptId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttemptSaveInput"
+      responses:
+        "200":
+          description: Saved attempt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attempt"
+  /attempts/{attemptId}/submit:
+    post:
+      operationId: submitAttempt
+      tags: [attempts]
+      summary: Submit and evaluate an attempt
+      parameters:
+        - $ref: "#/components/parameters/AttemptId"
+      responses:
+        "200":
+          description: Evaluated result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExamResult"
+  /results:
+    get:
+      operationId: listResults
+      tags: [results]
+      summary: List completed student results
+      responses:
+        "200":
+          description: Results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ResultSummary"
+  /results/{resultId}:
+    get:
+      operationId: getResult
+      tags: [results]
+      summary: Get a complete result with feedback
+      parameters:
+        - $ref: "#/components/parameters/ResultId"
+      responses:
+        "200":
+          description: Exam result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExamResult"
+  /admin/summary:
+    get:
+      operationId: getAdminSummary
+      tags: [admin]
+      summary: Get admin dashboard summary
+      responses:
+        "200":
+          description: Admin summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSummary"
+  /admin/exams:
+    get:
+      operationId: listAdminExams
+      tags: [admin]
+      summary: List exams for admin management
+      responses:
+        "200":
+          description: Exam management list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminExam"
+  /admin/exams/{examId}:
+    patch:
+      operationId: updateAdminExam
+      tags: [admin]
+      summary: Update an exam
+      parameters:
+        - $ref: "#/components/parameters/ExamId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExamUpdate"
+      responses:
+        "200":
+          description: Updated exam
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminExam"
 components:
+  parameters:
+    ExamId:
+      name: examId
+      in: path
+      required: true
+      schema:
+        type: string
+    AttemptId:
+      name: attemptId
+      in: path
+      required: true
+      schema:
+        type: string
+    ResultId:
+      name: resultId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +241,189 @@ components:
           type: string
       required:
         - status
+    ExamSummary:
+      type: object
+      required: [id, title, subject, gradeLevel, description, questionCount, durationMinutes, difficulty, types, status]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        subject: { type: string }
+        gradeLevel: { type: string }
+        description: { type: string }
+        questionCount: { type: integer }
+        durationMinutes: { type: integer, nullable: true }
+        difficulty: { type: string }
+        types:
+          type: array
+          items: { type: string }
+        status: { type: string }
+    ExamDetail:
+      allOf:
+        - $ref: "#/components/schemas/ExamSummary"
+        - type: object
+          required: [sections, questions]
+          properties:
+            sections:
+              type: array
+              items:
+                $ref: "#/components/schemas/ExamSection"
+            questions:
+              type: array
+              items:
+                $ref: "#/components/schemas/Question"
+    ExamSection:
+      type: object
+      required: [title, description]
+      properties:
+        title: { type: string }
+        description: { type: string }
+    Question:
+      type: object
+      required: [id, number, type, text, points, section, concepts, options]
+      properties:
+        id: { type: string }
+        number: { type: integer }
+        type: { type: string }
+        text: { type: string }
+        points: { type: integer }
+        section: { type: string }
+        concepts:
+          type: array
+          items: { type: string }
+        options:
+          type: array
+          items: { type: string }
+        imageUrl: { type: string, nullable: true }
+    Dashboard:
+      type: object
+      required: [firstName, activeExams, recentResults, learningProfile]
+      properties:
+        firstName: { type: string }
+        activeExams:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExamSummary"
+        recentResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResultSummary"
+        learningProfile:
+          $ref: "#/components/schemas/LearningProfile"
+    AttemptStartInput:
+      type: object
+      required: [examId]
+      properties:
+        examId: { type: string }
+    AttemptSaveInput:
+      type: object
+      required: [questionId, answer]
+      properties:
+        questionId: { type: string }
+        answer: { type: string }
+        marked: { type: boolean }
+    Attempt:
+      type: object
+      required: [id, examId, startedAt, status, currentQuestion, answers]
+      properties:
+        id: { type: string }
+        examId: { type: string }
+        startedAt: { type: string }
+        status: { type: string }
+        currentQuestion: { type: integer }
+        answers:
+          type: array
+          items:
+            $ref: "#/components/schemas/SavedAnswer"
+    SavedAnswer:
+      type: object
+      required: [questionId, answer, marked]
+      properties:
+        questionId: { type: string }
+        answer: { type: string }
+        marked: { type: boolean }
+    ResultSummary:
+      type: object
+      required: [id, examId, examTitle, subject, grade, scorePercent, completedAt]
+      properties:
+        id: { type: string }
+        examId: { type: string }
+        examTitle: { type: string }
+        subject: { type: string }
+        grade: { type: string }
+        scorePercent: { type: integer }
+        completedAt: { type: string }
+    ExamResult:
+      allOf:
+        - $ref: "#/components/schemas/ResultSummary"
+        - type: object
+          required: [strengths, practiceAreas, goldenFeedback, nextSteps, questionResults, dimensionScores]
+          properties:
+            strengths:
+              type: array
+              items: { type: string }
+            practiceAreas:
+              type: array
+              items: { type: string }
+            goldenFeedback: { type: string }
+            nextSteps:
+              type: array
+              items: { type: string }
+            questionResults:
+              type: array
+              items:
+                $ref: "#/components/schemas/QuestionResult"
+            dimensionScores:
+              type: array
+              items:
+                $ref: "#/components/schemas/DimensionScore"
+    QuestionResult:
+      type: object
+      required: [questionId, status, feedback]
+      properties:
+        questionId: { type: string }
+        status: { type: string }
+        feedback: { type: string }
+    DimensionScore:
+      type: object
+      required: [label, score]
+      properties:
+        label: { type: string }
+        score: { type: integer }
+    LearningProfile:
+      type: object
+      required: [subject, dimensions, focusLabel, focusText]
+      properties:
+        subject: { type: string }
+        dimensions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DimensionScore"
+        focusLabel: { type: string }
+        focusText: { type: string }
+    AdminSummary:
+      type: object
+      required: [totalExams, totalQuestions, totalAttempts, averageScore, mostCompletedExam, aiUsage]
+      properties:
+        totalExams: { type: integer }
+        totalQuestions: { type: integer }
+        totalAttempts: { type: integer }
+        averageScore: { type: integer }
+        mostCompletedExam: { type: string }
+        aiUsage: { type: integer }
+    AdminExam:
+      allOf:
+        - $ref: "#/components/schemas/ExamSummary"
+        - type: object
+          required: [createdAt, updatedAt]
+          properties:
+            createdAt: { type: string }
+            updatedAt: { type: string }
+    ExamUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        difficulty: { type: string }
+        durationMinutes: { type: integer, nullable: true }
+        status: { type: string }
 

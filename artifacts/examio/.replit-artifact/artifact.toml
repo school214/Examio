@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Examio"
+description = "A Swedish practice-exam platform for Årskurs 8 students, with realistic exams, progress tracking, and curriculum-aware feedback."
+version = "1.0.0"
+id = "artifacts/examio"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25186
+
+[services.development]
+run = "pnpm --filter @workspace/examio run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/examio", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/examio/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25186"
+BASE_PATH = "/"
