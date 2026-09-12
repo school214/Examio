@@ -76,7 +76,6 @@ export const GetExamResponse = zod.object({
  * @summary Get the student dashboard
  */
 export const GetDashboardResponse = zod.object({
-  "firstName": zod.string(),
   "activeExams": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
@@ -97,16 +96,46 @@ export const GetDashboardResponse = zod.object({
   "grade": zod.string(),
   "scorePercent": zod.number().int(),
   "completedAt": zod.string()
-})),
-  "learningProfile": zod.object({
-  "subject": zod.string(),
-  "dimensions": zod.array(zod.object({
-  "label": zod.string(),
-  "score": zod.number().int()
-})),
-  "focusLabel": zod.string(),
-  "focusText": zod.string()
+}))
 })
+
+
+/**
+ * @summary Check the current admin session
+ */
+export const GetAdminSessionResponse = zod.object({
+  "authenticated": zod.boolean(),
+  "username": zod.string().nullable(),
+  "csrfToken": zod.string().nullable()
+})
+
+
+/**
+ * @summary Log in as an administrator
+ */
+
+
+
+
+export const AdminLoginBody = zod.object({
+  "username": zod.string().min(1),
+  "password": zod.string().min(1)
+})
+
+export const AdminLoginResponse = zod.object({
+  "authenticated": zod.boolean(),
+  "username": zod.string().nullable(),
+  "csrfToken": zod.string().nullable()
+})
+
+
+/**
+ * @summary Log out the current administrator
+ */
+export const AdminLogoutResponse = zod.object({
+  "authenticated": zod.boolean(),
+  "username": zod.string().nullable(),
+  "csrfToken": zod.string().nullable()
 })
 
 

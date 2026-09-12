@@ -54,23 +54,22 @@ export interface ResultSummary {
   completedAt: string;
 }
 
-export interface DimensionScore {
-  label: string;
-  score: number;
-}
-
-export interface LearningProfile {
-  subject: string;
-  dimensions: DimensionScore[];
-  focusLabel: string;
-  focusText: string;
-}
-
 export interface Dashboard {
-  firstName: string;
   activeExams: ExamSummary[];
   recentResults: ResultSummary[];
-  learningProfile: LearningProfile;
+}
+
+export interface AdminSession {
+  authenticated: boolean;
+  username: string | null;
+  csrfToken: string | null;
+}
+
+export interface AdminLoginInput {
+  /** @minLength 1 */
+  username: string;
+  /** @minLength 1 */
+  password: string;
 }
 
 export interface AttemptStartInput {
@@ -104,6 +103,11 @@ export interface QuestionResult {
   feedback: string;
 }
 
+export interface DimensionScore {
+  label: string;
+  score: number;
+}
+
 export type ExamResult = ResultSummary & {
   strengths: string[];
   practiceAreas: string[];
@@ -112,6 +116,13 @@ export type ExamResult = ResultSummary & {
   questionResults: QuestionResult[];
   dimensionScores: DimensionScore[];
 };
+
+export interface LearningProfile {
+  subject: string;
+  dimensions: DimensionScore[];
+  focusLabel: string;
+  focusText: string;
+}
 
 export interface AdminSummary {
   totalExams: number;

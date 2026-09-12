@@ -3,6 +3,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { db, attemptsTable, examsTable, questionsTable, resultsTable } from "@workspace/db";
 import {
   GetAdminSummaryResponse,
+  GetAdminSessionResponse,
   GetAttemptParams,
   GetAttemptResponse,
   GetDashboardResponse,
@@ -16,6 +17,9 @@ import {
   SaveAttemptBody,
   SaveAttemptParams,
   SaveAttemptResponse,
+  AdminLoginBody,
+  AdminLoginResponse,
+  AdminLogoutResponse,
   StartAttemptBody,
   StartAttemptResponse,
   SubmitAttemptParams,
@@ -25,6 +29,16 @@ import {
   UpdateAdminExamResponse,
 } from "@workspace/api-zod";
 import { randomUUID } from "node:crypto";
+import {
+  adminSessionResponse,
+  authenticateAdmin,
+  clearAdminCookie,
+  destroyAdminSession,
+  getAdminSession,
+  requireAdmin,
+  requireAdminCsrf,
+  setAdminCookie,
+} from "../lib/admin-auth";
 
 const router: IRouter = Router();
 
@@ -155,21 +169,8 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
   const results = await db.select().from(resultsTable).orderBy(desc(resultsTable.completedAt)).limit(3);
 
   res.json(GetDashboardResponse.parse({
-    firstName: "Alex",
     activeExams: exams.map(toSummary),
     recentResults: results.map(toResultSummary),
-    learningProfile: {
-      subject: "Religionskunskap",
-      dimensions: [
-        { label: "Begrepp", score: 80 },
-        { label: "Fakta", score: 90 },
-        { label: "Resonemang", score: 60 },
-        { label: "Jämförelser", score: 50 },
-        { label: "Ämnesförståelse", score: 70 },
-      ],
-      focusLabel: "Resonemang",
-      focusText: "Du kan ofta beskriva vad något är. Nästa steg är att förklara varför och vilka konsekvenser det kan få.",
-    },
   }));
 });
 
@@ -329,7 +330,33 @@ router.get("/results/:resultId", async (req, res): Promise<void> => {
   res.json(GetResultResponse.parse(toResult(result)));
 });
 
+router.get("/admin/session", (req, res): void => {
+  res.json(GetAdminSessionResponse.parse(adminSessionResponse(getAdminSession(req))));
+});
+
+router.post("/admin/login", (req, res): void => {
+  const body = AdminLoginBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+  const result = authenticateAdmin(req, body.data.username, body.data.password);
+  if (!result.ok) {
+    res.status(result.status).json({ error: result.status === 429 ? "För många försök. Vänta en stund." : "Fel användarnamn eller lösenord." });
+    return;
+  }
+  setAdminCookie(res, result.token);
+  res.json(AdminLoginResponse.parse(adminSessionResponse(result.session)));
+});
+
+router.post("/admin/logout", (req, res): void => {
+  destroyAdminSession(req);
+  clearAdminCookie(res);
+  res.json(AdminLogoutResponse.parse(adminSessionResponse()));
+});
+
 router.get("/admin/summary", async (_req, res): Promise<void> => {
+  if (!requireAdmin(_req, res)) return;
   const exams = await db.select().from(examsTable);
   const questions = await db.select({ id: questionsTable.id }).from(questionsTable);
   const attempts = await db.select().from(attemptsTable);
@@ -346,6 +373,7 @@ router.get("/admin/summary", async (_req, res): Promise<void> => {
 });
 
 router.get("/admin/exams", async (_req, res): Promise<void> => {
+  if (!requireAdmin(_req, res)) return;
   const exams = await db.select().from(examsTable).orderBy(desc(examsTable.updatedAt));
   res.json(ListAdminExamsResponse.parse(exams.map((exam) => ({
     ...toSummary(exam),
@@ -355,6 +383,7 @@ router.get("/admin/exams", async (_req, res): Promise<void> => {
 });
 
 router.patch("/admin/exams/:examId", async (req, res): Promise<void> => {
+  if (!requireAdminCsrf(req, res)) return;
   const params = UpdateAdminExamParams.safeParse({ examId: parseParam(req.params.examId) });
   const body = UpdateAdminExamBody.safeParse(req.body);
   if (!params.success) {

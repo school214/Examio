@@ -7,6 +7,8 @@
  */
 
 export * from './adminExam';
+export * from './adminLoginInput';
+export * from './adminSession';
 export * from './adminSummary';
 export * from './attempt';
 export * from './attemptSaveInput';

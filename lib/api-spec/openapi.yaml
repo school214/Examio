@@ -74,6 +74,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Dashboard"
+  /admin/session:
+    get:
+      operationId: getAdminSession
+      tags: [admin]
+      summary: Check the current admin session
+      responses:
+        "200":
+          description: Admin session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Log in as an administrator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginInput"
+      responses:
+        "200":
+          description: Authenticated admin session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+        "401":
+          description: Invalid credentials
+        "429":
+          description: Too many attempts
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [admin]
+      summary: Log out the current administrator
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
   /attempts:
     post:
       operationId: startAttempt
@@ -172,6 +218,8 @@ paths:
       operationId: getAdminSummary
       tags: [admin]
       summary: Get admin dashboard summary
+      security:
+        - cookieAuth: []
       responses:
         "200":
           description: Admin summary
@@ -184,6 +232,8 @@ paths:
       operationId: listAdminExams
       tags: [admin]
       summary: List exams for admin management
+      security:
+        - cookieAuth: []
       responses:
         "200":
           description: Exam management list
@@ -198,6 +248,8 @@ paths:
       operationId: updateAdminExam
       tags: [admin]
       summary: Update an exam
+      security:
+        - cookieAuth: []
       parameters:
         - $ref: "#/components/parameters/ExamId"
       requestBody:
@@ -214,6 +266,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminExam"
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: examio_admin_session
   parameters:
     ExamId:
       name: examId
@@ -296,9 +353,8 @@ components:
         imageUrl: { type: string, nullable: true }
     Dashboard:
       type: object
-      required: [firstName, activeExams, recentResults, learningProfile]
+      required: [activeExams, recentResults]
       properties:
-        firstName: { type: string }
         activeExams:
           type: array
           items:
@@ -307,8 +363,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ResultSummary"
-        learningProfile:
-          $ref: "#/components/schemas/LearningProfile"
+    AdminSession:
+      type: object
+      required: [authenticated, username, csrfToken]
+      properties:
+        authenticated: { type: boolean }
+        username: { type: string, nullable: true }
+        csrfToken: { type: string, nullable: true }
+    AdminLoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1 }
     AttemptStartInput:
       type: object
       required: [examId]

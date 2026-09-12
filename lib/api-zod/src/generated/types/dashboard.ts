@@ -6,12 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ExamSummary } from './examSummary';
-import type { LearningProfile } from './learningProfile';
 import type { ResultSummary } from './resultSummary';
 
 export interface Dashboard {
-  firstName: string;
   activeExams: ExamSummary[];
   recentResults: ResultSummary[];
-  learningProfile: LearningProfile;
 }
